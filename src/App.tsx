@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Calendar, Label, TimeField, type TimeValue } from '@heroui/react'
 import { I18nProvider } from 'react-aria-components'
 import { CalendarDate, Time, getLocalTimeZone, today, type DateValue } from '@internationalized/date'
 import { AnimatePresence, LazyMotion, MotionConfig, domAnimation, m, useReducedMotion } from 'framer-motion'
 import { DEFAULT_TOOLS, MODEL_FILES } from './constants'
 import { fetchCached, type Progress } from './inference/cache'
+import { aggregateProgress } from './inference/progress'
 import { createSessions, type NeedleSessions } from './inference/session'
 import { generate } from './inference/generate'
 import { NeedleTokenizer, type Specials } from './inference/tokenizer'
@@ -18,7 +19,7 @@ import { ArrivalsBoard } from './components/itineraire/ArrivalsBoard'
 import { DEMO_DESTINATION, DEMO_JOURNEYS, DEMO_ORIGIN, demoSearchPlaces } from './demo-data'
 import { PlaceAutocomplete } from './components/PlaceAutocomplete'
 import { ModeIcon } from './components/ModeIcon'
-import { NeedleInfoPopover } from './components/NeedleInfoPopover'
+import { NeedleInfoPopover, type ModelStatus } from './components/NeedleInfoPopover'
 import { LimitNudge } from './components/LimitNudge'
 import { detectLimit } from './needle-limits'
 import { TRANSPORT_MODES, excludedModesFromIntent } from './travel/modeFilter'
@@ -93,15 +94,6 @@ function navToFrLabel(nav: string | null): string {
   return `${day.charAt(0).toUpperCase()}${day.slice(1)}, ${hm}`
 }
 
-function progressWidthClass(percent: number) {
-  if (percent >= 100) return 'w-full'
-  if (percent >= 75) return 'w-3/4'
-  if (percent >= 50) return 'w-1/2'
-  if (percent >= 25) return 'w-1/4'
-  if (percent > 0) return 'w-1/12'
-  return 'w-0'
-}
-
 // Ask the browser for the user's position; resolves to a Navitia place whose id
 // is "lon;lat" (Navitia accepts coordinates as from/to). Resolves null if
 // geolocation is unavailable or the user denies the prompt.
@@ -121,12 +113,17 @@ function useNeedleModel() {
   const [progress, setProgress] = useState<Record<string, Progress>>({})
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  // Bumped by retry(); the effect depends on it, so each bump re-runs the
+  // download with its own `cancelled` flag (no stale closures across retries).
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       try {
         setLoading(true)
+        setError(null)
+        setProgress({})
         const track = (p: Progress) => setProgress((current) => ({ ...current, [p.name]: p }))
         const [encoderBytes, decoderBytes, tokenizerBytes, specialsBytes, configBytes] = await Promise.all([
           fetchCached(MODEL_FILES.encoder.name, MODEL_FILES.encoder.url, track),
@@ -153,9 +150,11 @@ function useNeedleModel() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
-  return { model, progress, error, loading }
+  const retry = useCallback(() => setReloadKey((key) => key + 1), [])
+
+  return { model, progress, error, loading, retry }
 }
 
 function Header() {
@@ -292,6 +291,7 @@ type SearchPanelProps = {
   onSubmit: () => void
   examples?: string[]
   onExample?: (value: string) => void
+  status: ModelStatus
 }
 
 // Single natural-language search bar — the whole product premise. No structured
@@ -299,7 +299,7 @@ type SearchPanelProps = {
 // words and Needle (on-device model) extracts origin, destination and time.
 // The placeholder cycles through real example phrasings (animated) so the bar
 // teaches what it accepts instead of relying on a decorative icon.
-function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, onExample }: SearchPanelProps) {
+function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, onExample, status }: SearchPanelProps) {
   const [phIdx, setPhIdx] = useState(0)
   const [focused, setFocused] = useState(false)
 
@@ -309,7 +309,10 @@ function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, o
     return () => clearInterval(timer)
   }, [query])
 
-  const showHint = !query && !focused
+  // The model isn't ready: lock the input and show a static placeholder instead
+  // of the cycling examples (which would otherwise animate behind it).
+  const modelBusy = status.loading || Boolean(status.error)
+  const showHint = !query && !focused && !modelBusy
 
   return (
     <section className="w-full">
@@ -317,9 +320,10 @@ function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, o
         <div className="relative flex min-w-0 flex-1 items-center">
           <label className="sr-only" htmlFor="natural-query">Votre demande de trajet en langage naturel</label>
           <input
-            className="peer w-full bg-transparent text-[15px] font-semibold text-[#171D2D] outline-none"
+            className="peer w-full bg-transparent text-[15px] font-semibold text-[#171D2D] outline-none disabled:cursor-not-allowed"
             id="natural-query"
             autoComplete="off"
+            disabled={modelBusy}
             onChange={(event) => setQuery(event.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
@@ -328,6 +332,11 @@ function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, o
             }}
             value={query}
           />
+          {modelBusy && !query && (
+            <span className="pointer-events-none absolute inset-0 flex items-center truncate text-[15px] font-medium text-[#9AA1B2]">
+              {status.error ? 'Recherche indisponible' : 'Préparation de Needle…'}
+            </span>
+          )}
           {showHint && (
             <span className="pointer-events-none absolute inset-0 flex items-center overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
@@ -360,7 +369,7 @@ function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, o
         </button>
       </div>
       <div className="mt-2 flex items-center gap-2">
-        <NeedleInfoPopover />
+        <NeedleInfoPopover status={status} />
         {examples && examples.length > 0 && (
           <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <span className="shrink-0 text-[12px] font-medium text-white/35">Essayez :</span>
@@ -381,35 +390,6 @@ function SearchPanel({ query, setQuery, running, disabled, onSubmit, examples, o
   )
 }
 
-
-function LoaderCard({ error, loading, progress }: { error: string | null; loading: boolean; progress: Record<string, Progress> }) {
-  if (!loading && !error) return null
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-4 md:px-8">
-      <div className="rounded-3xl bg-white p-5 shadow-sm">
-        <p className="font-black text-[#0C131F]">{error ? 'Modèle indisponible' : 'Chargement du modèle Needle'}</p>
-        {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
-        {!error ? (
-          <div className="mt-3 grid gap-2 md:grid-cols-5">
-            {Object.values(MODEL_FILES).map((file) => {
-              const item = progress[file.name]
-              const pct = item?.total ? Math.round((item.loaded / item.total) * 100) : 0
-              return (
-                <div className="rounded-2xl bg-[#F1F4F8] p-3" key={file.name}>
-                  <p className="truncate text-xs font-black text-slate-700">{file.name}</p>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
-                    <div className={`h-full rounded-full bg-[#127996] transition-all ${progressWidthClass(pct)}`} />
-                  </div>
-                  <p className="mt-1 text-xs text-slate-500">{pct}%</p>
-                </div>
-              )
-            })}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
 
 function DevToolBubble({ output, metrics, error }: { output: string; metrics: MetricState | null; error: string | null }) {
   const [open, setOpen] = useState(false)
@@ -623,6 +603,7 @@ function ItineraryScreen({
   datetime,
   destination,
   error,
+  modelStatus,
   filters,
   journeys,
   arrivals,
@@ -650,6 +631,7 @@ function ItineraryScreen({
   datetime: string | null
   destination: NavitiaPlace | null
   error: string | null
+  modelStatus: ModelStatus
   filters: Filters
   journeys: JourneyResult[]
   arrivals: LineArrivals[]
@@ -713,7 +695,7 @@ function ItineraryScreen({
             ) : null}
           </div>
           <div className="mt-5">
-            <SearchPanel disabled={disabled} examples={NL_CHIPS} onExample={setQuery} onSubmit={onSubmit} query={query} running={running} setQuery={setQuery} />
+            <SearchPanel disabled={disabled} examples={NL_CHIPS} onExample={setQuery} onSubmit={onSubmit} query={query} running={running} setQuery={setQuery} status={modelStatus} />
           </div>
           {limit && (
             <LimitNudge
@@ -932,7 +914,13 @@ function Footer() {
 
 export default function App() {
   const prefersReducedMotion = useReducedMotion()
-  const { model, progress, error: modelError, loading } = useNeedleModel()
+  const { model, progress, error: modelError, loading, retry } = useNeedleModel()
+  const modelStatus: ModelStatus = {
+    loading,
+    error: modelError,
+    agg: aggregateProgress(progress, Object.keys(MODEL_FILES).length),
+    retry,
+  }
   const [query, setQuery] = useState(defaultQuery)
   const [output, setOutput] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -1145,12 +1133,12 @@ export default function App() {
       <MotionConfig reducedMotion={prefersReducedMotion ? 'always' : 'never'}>
         <div className="min-h-screen bg-[#F3F3F8] font-sans text-[#0C131F]">
           <Header />
-          <LoaderCard error={modelError} loading={loading} progress={progress} />
           <ItineraryScreen
             datetime={datetime}
             destination={destination}
             disabled={!model || loading || Boolean(modelError)}
             error={error}
+            modelStatus={modelStatus}
             filters={filters}
             journeys={journeys}
             arrivals={arrivals}

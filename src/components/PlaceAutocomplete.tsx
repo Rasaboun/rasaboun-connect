@@ -103,9 +103,12 @@ export function PlaceAutocomplete({ label, value, onSearch, onSelect }: Props) {
             setText(event.target.value)
             setOpen(true)
           }}
-          onFocus={(event) => {
+          onFocus={() => {
+            // Tapping the field clears it for a fresh entry. Tapping away without
+            // picking a suggestion restores value?.name (outside-click / Escape
+            // handlers below), so nothing is lost when the user just glances in.
             setOpen(true)
-            event.target.select()
+            setText('')
           }}
           onKeyDown={onKeyDown}
           placeholder={label === 'Départ' ? "D'où partez-vous ?" : 'Où allez-vous ?'}

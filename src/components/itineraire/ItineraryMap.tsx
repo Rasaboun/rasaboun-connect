@@ -74,24 +74,51 @@ export function ItineraryMap({ journey }: { journey: JourneyResult }) {
         const sameStation = (a: string, b: string) =>
           a.replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase() ===
           b.replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase()
-        const at = (lat: number, lon: number, name: string): Node => {
+        // Two consecutive stops within ~150 m are almost always the same station
+        // complex (a correspondance), not two places — merge them into one pin.
+        const NEAR_METERS = 150
+        const near = (aLat: number, aLon: number, bLat: number, bLon: number) => {
+          const meanLat = (((aLat + bLat) / 2) * Math.PI) / 180
+          const dy = (aLat - bLat) * 111320
+          const dx = (aLon - bLon) * 111320 * Math.cos(meanLat)
+          return Math.hypot(dx, dy) < NEAR_METERS
+        }
+        const at = (lat: number, lon: number, name: string, allowNear = true): Node => {
           const prev = nodes[nodes.length - 1]
-          // Merge consecutive nodes at the same station so the redundant grey
-          // walk pin folds into the colored transit pin (walk color is null, so
-          // `section.color ?? existing` keeps the line color). The display name
-          // keeps the first-seen value.
-          if (prev && (sameStation(prev.name, name) || (prev.lat === lat && prev.lon === lon))) return prev
+          // Merge into the previous node when it's the same station — by name
+          // (ignoring the admin suffix), exact coords, or close proximity (a
+          // transfer between two near stops). `allowNear` is off for the
+          // destination so the final pin can never be swallowed by the last stop.
+          if (
+            prev &&
+            (sameStation(prev.name, name) ||
+              (prev.lat === lat && prev.lon === lon) ||
+              (allowNear && near(prev.lat, prev.lon, lat, lon)))
+          )
+            return prev
           const node: Node = { lat, lon, name, inColor: null, outColor: null }
           nodes.push(node)
           return node
         }
-        for (const section of journey.sections) {
-          if (section.path.length === 0) continue
+        journey.sections.forEach((section, index) => {
+          if (section.path.length === 0) return
           const from = section.path[0]
           const to = section.path[section.path.length - 1]
-          at(from.lat, from.lon, section.from).outColor = section.color ?? at(from.lat, from.lon, section.from).outColor
-          at(to.lat, to.lon, section.to).inColor = section.color ?? at(to.lat, to.lon, section.to).inColor
-        }
+          // A sub-minute walk contributes no pin of its own — its endpoints just
+          // duplicate the adjacent stop ~30 m away. Keep only the journey's true
+          // origin (first section's start) and destination (last section's end)
+          // so the A/B markers never disappear.
+          const trivialWalk = section.type !== 'public_transport' && section.durationSeconds < 60
+          const isLast = index === journey.sections.length - 1
+          if (!trivialWalk || index === 0) {
+            const fromNode = at(from.lat, from.lon, section.from)
+            fromNode.outColor = section.color ?? fromNode.outColor
+          }
+          if (!trivialWalk || isLast) {
+            const toNode = at(to.lat, to.lon, section.to, !isLast)
+            toNode.inColor = section.color ?? toNode.inColor
+          }
+        })
 
         const initial = (name: string) => name.trim().charAt(0).toUpperCase() || '•'
         const annotations = nodes.map((node, index) => {
@@ -139,9 +166,13 @@ export function ItineraryMap({ journey }: { journey: JourneyResult }) {
       cancelled = true
       if (map) map.destroy()
     }
-    // Re-run only when the selected journey changes; `journey` is a fresh ref each render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journey.id, hasPath])
+    // Redraw whenever the displayed journey changes. `journey` is `journeys.find(...)`
+    // on state: referentially stable across unrelated re-renders, but a fresh object
+    // on every fetch/selection — so this re-runs exactly when the route changes.
+    // Keying on `journey.id` missed re-fetches: ids are positional (`journey-0`), so
+    // editing Départ/Arrivée produced a new route under the same id and the map kept
+    // the stale polyline.
+  }, [journey, hasPath])
 
   if (!mapkitEnabled || !hasPath) return null
   return <div className="mx-2 mt-4 h-60 overflow-hidden rounded-2xl bg-slate-200" ref={ref} />

@@ -124,7 +124,10 @@ export function DisplaySection({ section }: { section: JourneySection }) {
         />
       </div>
       <div className="min-w-0 flex-1 pb-5">
-        <p className="font-medium leading-tight text-[#0C131F]">{section.from}</p>
+        {/* A waiting leg carries no station of its own (Navitia leaves from/to
+            empty → normalized to "Unknown"). The stop is already shown by the
+            adjacent rows, so show only the wait indicator, never "Unknown". */}
+        {!isWaiting && <p className="font-medium leading-tight text-[#0C131F]">{section.from}</p>}
         {isPublicTransport ? (
           <div className="mt-2">
             <div className="inline-flex max-w-full flex-col rounded-2xl bg-[#F3F3F8] p-2">
