@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Static-site hosting on Cloudflare Workers (assets only, no Worker script).
+  // COOP/COEP headers come from public/_headers. Live data + tokens are served
+  // by the separate navitia-proxy Worker (api.rasaboun-connect.rasaboun.me).
+  "name": "rasaboun-connect",
+  "compatibility_date": "2026-05-29",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  // Must be this exact host: the MapKit token + proxy CORS are origin-locked to it.
+  "routes": [
+    { "pattern": "rasaboun-connect.rasaboun.me", "custom_domain": true }
+  ]
+}

@@ -1,0 +1,4 @@
+# onnxruntime-web's wasm is fetched from jsDelivr at runtime (see
+# src/inference/session.ts `wasmPaths`), so the bundled copy is unused — and it
+# exceeds Cloudflare's 25 MiB per-file static-asset limit. Don't upload it.
+*.wasm

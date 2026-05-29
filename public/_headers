@@ -1,0 +1,7 @@
+# Cross-origin isolation for multi-threaded WASM (onnxruntime-web needs
+# SharedArrayBuffer). `credentialless` (not require-corp) keeps SharedArrayBuffer
+# on Chromium/Firefox while letting Apple MapKit tiles (no CORP headers) load.
+# Parsed by Cloudflare Workers static assets (not served as a file).
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless

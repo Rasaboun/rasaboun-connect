@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@heroui/react/styles";
+
+@font-face {
+  font-family: 'AH';
+  src: url('/fonts/AH.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'AH', ui-sans-serif, system-ui, sans-serif;
+}
