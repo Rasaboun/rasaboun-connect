@@ -1,13 +1,22 @@
-# Rasaboun-connect
+# <img src="public/favicon.svg" alt="" width="30" height="30" align="center"> Rasaboun-Connect
 
-Natural-language transit search for Paris / Île-de-France that runs **entirely in
-your browser**. Type a trip the way you'd say it — *"Comment aller de Châtelet à
-Nation ?"*, *"arriver à Bastille avant 18h depuis Opéra"*, *"prochains métros à
-Saint-Lazare"* — and an on-device model turns it into a structured query, fetches
-live itineraries, and draws the route on an Apple map. No prompts sent to a
-server: the language understanding happens client-side.
+**Ask for directions in plain French — get a full transit itinerary, without leaving your browser.**
 
-<img width="2000" height="1633" alt="image" src="https://github.com/user-attachments/assets/0b773ac2-ca25-4bb7-9d98-0d81144e6a9e" />
+Type your trip the way you'd say it out loud — *"Comment aller de Châtelet à Nation ?"* —
+and Rasaboun-connect works out where you're going, when, and how, then lays the routes over
+a live map. No forms, no *Départ / Arrivée* fields, no dropdowns. Just a sentence.
+
+<p align="center">
+  <img src="assets/screenshot.png" alt="Rasaboun-connect — natural-language itinerary search for Paris transit" width="900">
+</p>
+
+The twist: **the language model runs on your device.** A small 26M-parameter model is
+downloaded once and executed right in your browser (WebAssembly) — your phrasing is never
+sent to a server to be understood. It picks up on times and modes too
+(*"arriver à Bastille avant 18h"*, *"…en bus"*, *"prochains métros à Saint-Lazare"*) and
+tells you politely when something's out of scope. Live routes and schedules for
+Paris / Île-de-France come from a small proxy, and the journey is drawn on an Apple map
+alongside a step-by-step timeline.
 
 > Independent demo by Rasaboun, inspired by the SNCF Connect search experience.
 > Not affiliated with SNCF or SNCF Connect.
