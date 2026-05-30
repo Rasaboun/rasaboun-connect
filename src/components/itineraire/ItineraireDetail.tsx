@@ -1,33 +1,7 @@
 import type { JourneyResult } from '../../travel/navitia'
+import { formatClock } from '../../time/format'
 import { DisplaySection } from './DisplaySection'
 import { ItineraryMap } from './ItineraryMap'
-
-function rawTimeToIso(date: string | null): string {
-  if (!date) return ''
-  return (
-    date.slice(0, 4) +
-    '-' +
-    date.slice(4, 6) +
-    '-' +
-    date.slice(6, 8) +
-    'T' +
-    date.slice(9, 11) +
-    ':' +
-    date.slice(11, 13) +
-    ':' +
-    date.slice(13, 15)
-  )
-}
-
-function formatClock(dateStr: string | null): string {
-  if (!dateStr) return '--:--'
-  const date = new Date(rawTimeToIso(dateStr))
-  return (
-    date.getHours().toLocaleString(undefined, { minimumIntegerDigits: 2, useGrouping: false }) +
-    ':' +
-    date.getMinutes().toLocaleString(undefined, { minimumIntegerDigits: 2, useGrouping: false })
-  )
-}
 
 function parseCo2(co2: string | null): number {
   if (!co2) return 0
@@ -36,8 +10,8 @@ function parseCo2(co2: string | null): number {
 }
 
 export function ItineraireDetail({ journey }: { journey: JourneyResult }) {
-  const depart = formatClock(journey.departure)
-  const arrive = formatClock(journey.arrival)
+  const depart = formatClock(journey.departure) || '--:--'
+  const arrive = formatClock(journey.arrival) || '--:--'
   const co2Value = parseCo2(journey.co2)
 
   return (

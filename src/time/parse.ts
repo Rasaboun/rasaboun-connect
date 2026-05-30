@@ -14,7 +14,7 @@ export function parseHumanTime(
   locale: Locale,
   refDate: Date = new Date(),
 ): ParsedTime | null {
-  const parser = locale === 'fr' ? chrono.fr : chrono
+  const parser = locale === 'fr' && chrono.fr ? chrono.fr : chrono
   const results = parser.parse(human, refDate, { forwardDate: true })
   if (results.length === 0) return null
   const r = results[0]

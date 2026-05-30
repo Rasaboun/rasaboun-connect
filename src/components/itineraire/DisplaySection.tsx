@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { JourneySection, StopDateTime } from '../../travel/navitia'
+import { formatClock } from '../../time/format'
 import { TransportLogo } from './TransportLogo'
 
 function StopList({ stops }: { stops: StopDateTime[] }) {
@@ -57,15 +58,6 @@ function readableTextColor(hex: string | null): string {
   const b = parseInt(clean.slice(4, 6), 16)
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
   return luminance > 0.6 ? '#0C131F' : '#FFFFFF'
-}
-
-function formatClock(dateStr: string | null): string {
-  if (!dateStr) return ''
-  const iso = `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}T${dateStr.slice(9, 11)}:${dateStr.slice(11, 13)}:${dateStr.slice(13, 15)}`
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return ''
-  const pad = (n: number) => n.toLocaleString(undefined, { minimumIntegerDigits: 2, useGrouping: false })
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 function WalkIcon() {

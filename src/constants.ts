@@ -72,16 +72,22 @@ export const DEFAULT_TOOLS = JSON.stringify(
   2,
 )
 
-export const EXAMPLE_QUERIES = [
-  'Comment aller de Châtelet à Nation ?',
-  'How do I get from Gare du Nord to Bastille ?',
-  'Prochains métros à Saint-Lazare',
-  'Itinéraire Montparnasse vers République demain à 8h',
-  'arriver à Bastille avant 18h depuis Châtelet',
-  'stp dis moi cmt aller a opera depuis nation',
-  'next train at La Défense line A',
-  'Quel temps fait-il à Paris ?',
-]
+// One easing curve + a couple of reusable framer-motion variants so every
+// transition feels part of the same minimalist system: a short fade with a
+// small rise, no spring bounce. Shared by App + the extracted screen
+// components. MotionConfig (in App) disables all of it under reduced motion.
+export const EASE = [0.22, 1, 0.36, 1] as const
+export const screenTransition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+  transition: { duration: 0.32, ease: EASE },
+}
+export const detailTransition = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.22, ease: EASE },
+}
 
 // What Needle can and can't do — single source for the info popover (and any
 // future surface). Showing capabilities alongside limits reads better than a

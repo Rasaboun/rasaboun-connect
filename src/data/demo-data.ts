@@ -3,7 +3,7 @@
 // Navitia API. Activated with the `?demo=1` query param. Châtelet -> Nation,
 // mirroring the SNCF-Connect reference screenshot. Every section carries
 // departure/arrival times so the detail timeline can show a time-pill per node.
-import { nameMatchScore, type JourneyResult, type JourneySection, type NavitiaPlace } from './travel/navitia'
+import { nameMatchScore, type JourneyResult, type JourneySection, type NavitiaPlace } from '../travel/navitia'
 
 const M1 = '#FFCD00'
 const M2 = '#0064B0'

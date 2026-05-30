@@ -1,32 +1,6 @@
 import type { JourneyResult } from '../../travel/navitia'
+import { formatClock } from '../../time/format'
 import { ItineraireRow } from './ItineraireRow'
-
-function rawTimeToIso(date: string | null): string {
-  if (!date) return ''
-  return (
-    date.slice(0, 4) +
-    '-' +
-    date.slice(4, 6) +
-    '-' +
-    date.slice(6, 8) +
-    'T' +
-    date.slice(9, 11) +
-    ':' +
-    date.slice(11, 13) +
-    ':' +
-    date.slice(13, 15)
-  )
-}
-
-function formatClock(dateStr: string | null): string {
-  if (!dateStr) return '--:--'
-  const date = new Date(rawTimeToIso(dateStr))
-  return (
-    date.getHours().toLocaleString(undefined, { minimumIntegerDigits: 2, useGrouping: false }) +
-    ':' +
-    date.getMinutes().toLocaleString(undefined, { minimumIntegerDigits: 2, useGrouping: false })
-  )
-}
 
 export function ItineraireItem({
   journey,
@@ -39,8 +13,8 @@ export function ItineraireItem({
   onSelect: () => void
   recommended?: boolean
 }) {
-  const depart = formatClock(journey.departure)
-  const arrive = formatClock(journey.arrival)
+  const depart = formatClock(journey.departure) || '--:--'
+  const arrive = formatClock(journey.arrival) || '--:--'
 
   const transportRow = journey.sections.map((elem, id) => (
     <ItineraireRow key={elem.id} elem={elem} id={id} sections={journey.sections} />
