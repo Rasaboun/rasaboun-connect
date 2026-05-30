@@ -7,6 +7,8 @@ Saint-Lazare"* — and an on-device model turns it into a structured query, fetc
 live itineraries, and draws the route on an Apple map. No prompts sent to a
 server: the language understanding happens client-side.
 
+<img width="2000" height="1633" alt="image" src="https://github.com/user-attachments/assets/0b773ac2-ca25-4bb7-9d98-0d81144e6a9e" />
+
 > Independent demo by Rasaboun, inspired by the SNCF Connect search experience.
 > Not affiliated with SNCF or SNCF Connect.
 
