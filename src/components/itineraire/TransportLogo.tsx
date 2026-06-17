@@ -89,7 +89,7 @@ export function TransportLogo({ elem }: { elem: JourneySection }) {
       <div className="flex flex-row items-center space-x-0.5">
         <ModeIcon mode="Train" className="h-6 w-6" />
         <span
-          className="flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-sm font-semibold text-white"
+          className="flex h-5 w-5 items-center justify-center rounded-md text-sm font-semibold text-white"
           style={{ backgroundColor: elem.color ?? '#999' }}
         >
           {elem.label}
