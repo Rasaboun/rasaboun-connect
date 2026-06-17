@@ -126,7 +126,7 @@ export const EXPLORE_CARDS = [
 // streaming + per-file progress in `fetchCached` work from any deploy host and
 // from localhost. Swap the SHA for `main` to always track the latest upload.
 const MODEL_BASE =
-  'https://huggingface.co/rasaboun/needle-transit-onnx/resolve/d4f6f1b072119d2d8453fb3f3b283e7f5b035c35'
+  'https://huggingface.co/rasaboun/needle-transit-onnx/resolve/e2b44a9bb5ed9dbdad71bfb586905f145b7f3bbe'
 
 export const MODEL_FILES = {
   encoder: { name: 'encoder.onnx', url: `${MODEL_BASE}/encoder.onnx` },
