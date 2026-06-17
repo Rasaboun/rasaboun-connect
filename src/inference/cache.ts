@@ -1,6 +1,6 @@
 import { openDB, type IDBPDatabase } from 'idb'
 
-const DB_NAME = 'needle-v29'
+const DB_NAME = 'needle-v43'
 const DB_VERSION = 1
 const STORE = 'files'
 
