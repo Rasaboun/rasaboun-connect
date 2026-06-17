@@ -52,7 +52,7 @@ export function NeedleInfoPopover({ status }: { status: ModelStatus }) {
           ) : (
             <>
               <InfoIcon className="h-3.5 w-3.5" />
-              Ce que Rasaboun-connect comprend
+              <span className="hidden sm:inline">Ce que Rasaboun-connect comprend</span>
             </>
           )}
         </Popover.Trigger>
